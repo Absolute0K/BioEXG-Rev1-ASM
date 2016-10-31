@@ -1,0 +1,133 @@
+	.EQU	STACK_TOP,		0x20020000
+
+	.SYNTAX	UNIFIED
+	.THUMB
+	.GLOBAL	_vectors
+	.GLOBAL	START
+	.TYPE		START, %function
+	.EQU	PERIPH_BASE,	0x40020000		@ Peripheral Base
+	.EQU	EXTI_BASE,		0x40013C00
+
+_vectors:
+	.WORD		STACK_TOP					@ The Top of the Stack
+	.WORD		START						@ Our Main Function
+	.WORD		NMI
+	.WORD		HARD_FAULT
+	.WORD		MEMORY_MANAGEMENT
+	.WORD		BUS_FAULT
+	.WORD		USAGE_FAULT
+	.WORD		0
+	.WORD		0
+	.WORD		0
+	.WORD		0
+	.WORD		SVC
+	.WORD		DEBUG_MONITOR
+	.WORD		0
+	.WORD		PEND_SYS_SERVICE
+	.WORD		SYS_TICK
+	.WORD		WWDG						@ Starting of External Interrupts
+	.WORD		PVD
+	.WORD		TAMP_STAMP
+	.WORD		RTC_WAKEUP
+	.WORD		FLASH
+	.WORD		RCC
+	.WORD		EXTI0					@ IRQ_07
+	.WORD		EXTI1
+	.WORD		EXTI2
+	.WORD		EXTI3
+	.WORD		EXTI4
+	.WORD		DMA_STRM0
+	.WORD		DMA_STRM1
+	.WORD		DMA_STRM2
+	.WORD		DMA_STRM3
+	.WORD		DMA_STRM4
+	.WORD		DMA_STRM5
+	.WORD		DMA_STRM6
+	.WORD		ADC_INT
+
+
+NMI:
+	B	.
+
+HARD_FAULT:
+	B	.
+
+MEMORY_MANAGEMENT:
+	B	.
+
+BUS_FAULT:
+	B	.
+
+USAGE_FAULT:
+	B	.
+
+SVC:
+	B	.
+
+DEBUG_MONITOR:
+	B	.
+
+PEND_SYS_SERVICE:
+	B	.
+
+SYS_TICK:
+	B	.
+
+WWDG:
+	B	.
+
+PVD:
+	B	.
+
+TAMP_STAMP:
+	B	.
+
+RTC_WAKEUP:
+	B	.
+
+FLASH:
+	B	.
+
+RCC:
+	B	.
+
+EXTI0:
+	B	.
+
+EXTI1:
+	B	.
+
+EXTI2:
+	B	.
+
+@EXTI3:
+@	B	.
+
+EXTI4:
+	B	.
+
+DMA_STRM0:
+	B	.
+
+DMA_STRM1:
+	B	.
+
+DMA_STRM2:
+	B	.
+
+DMA_STRM3:
+	B	.
+
+DMA_STRM4:
+	B	.
+
+DMA_STRM5:
+	B	.
+
+DMA_STRM6:
+	B	.
+
+ADC_INT:
+	B	.
+
+.END
