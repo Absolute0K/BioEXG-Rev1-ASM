@@ -1,5 +1,178 @@
-XSym
-0014
-b698f6655eaa259df05efea91008ea6b
-../LBR/SPI.inc
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+@ The code below varies from device to device
+.MACRO	TSPI	ADDR,	SPI_DATA,	W_OFFSET,	SPI_DATA2
+	CS_LOW
+
+	@ Send the WRITE command byte
+	LDR		R2,	=(((\ADDR & 0xF) | 0x50) << 8) | \W_OFFSET
+	BL		SPI_W_CMD
+
+	@ Data comes next
+	LDR		R2,	=((\SPI_DATA & 0xFF) << 8) | \SPI_DATA2
+	BL		SPI_W_CMD
+
+	MOV		R4,	#200
+wWAIT_CS_\ADDR:
+	SUBS	R4,	R4,	#1
+	BNE		wWAIT_CS_\ADDR
+
+	CS_HIGH
+.ENDM
+
+.MACRO	RSPI	ADDR,	OFFSET
+	CS_LOW
+	LDR		R2,	=((((\ADDR & 0xF) | 0x10) << 8) | \OFFSET)
+	BL		SPI_W_CMD	
+
+	LDR		R4,	=700
+rWAIT_INT_\ADDR:
+	SUBS	R4,	R4,	#1
+	BNE		rWAIT_INT_\ADDR
+
+	MOV		R2,	#0x0
+	BL		SPI_R_CMD
+
+	MOV		R4,	#200
+rWAIT_CS_\ADDR:
+	SUBS	R4,	R4,	#1
+	BNE		rWAIT_CS_\ADDR
+
+	CS_HIGH
+.ENDM
+
+.MACRO	ADC_CMD		CMD
+	CS_LOW
+
+	MOV		R2,	#\CMD
+	BL		SPI_W_CMD
+
+	MOV		R4,	#200
+rWAIT_CS_\CMD:
+	SUBS	R4,	R4,	#1
+	BNE		rWAIT_CS_\CMD
+
+	CS_HIGH
+.ENDM
+
+
+@ ----------
+.MACRO	SPI_INIT
+SPI_GPIO_CLK:
+	MOV		R2,	#(1 << 0 | 1 << 4)
+	LMS		R2,	AHB1,	RCC,	RCC_AHB1ENR
+
+SPI_GPIOA_INIT:
+	LDR		R2,	=(5 << 20 | 5 << 24 | 5 << 28)
+	LMS		R2,	AHB1,	GPIOA,	AFRL
+
+	LDR		R2,	=(1 << 4 | 2 << 10 | 2 << 12 | 2 << 14)
+	LMSC	R2,	MODER
+
+	MOV		R2,	#(3 << 4)
+	LMSC	R2,	OSPEEDR
+
+	MOV		R2,	#(1 << 2)
+	LMSC	R2,	BSRRL
+
+@ GPIOD_INIT:
+@	MOV		R2,	#(1 << 24 | 1 << 26 | 1 << 28 | 1 << 30)
+@	OSR		R2,	AHB1,	GPIOD,	MODER
+
+@	MOV		R2,	#(3 << 24 | 3 << 26 | 3 << 28 | 3 << 30)
+@	LMSC	R2,	OSPEEDR
+
+@ GPIOE_INIT:
+@	MOV		R2,	#(1 << 14)
+@	OSR		R2,	AHB1,	GPIOE,	MODER
+	
+@	MOV		R2,	#(3 << 14)
+@	OSRC	R2,	OSPEEDR
+
+@	MOV		R2,	#(1 << 7)
+@	OSRC	R2,	BSRRL
+
+
+SPI_CLK_INIT:
+	MOV		R2,	#(1 << 12)
+	LMS		R2,	AHB1,	RCC,	RCC_APB2ENR
+
+SPI_CR_INIT:
+	LDR		R2,	=(5 | 6 << 3 | 1 << 6 | 1 << 8 | 1 << 9 | 1 << 11)
+	OSR		R2,	APB2,	SPI1,	SPI_CR1
+.ENDM
+
+
+.MACRO	SPI_R_CMD	
+SPI_R_CMD:
+
+rT_DATA:
+	OSR		R2,	APB2,	SPI1,	SPI_DR
+
+@ Check here
+
+rTX_RDY:
+	LRVC	R2,	SPI_SR
+	TST		R2,	#(1 << 1)
+	BNE		rTX_RDY
+
+rRX_RDY:
+	LRVC	R2,	SPI_SR
+	TST		R2,	#(1 << 0)
+	BEQ		rRX_RDY
+
+rR_DATA:
+	LRVC	R2,	SPI_DR
+
+rSPI_RDY:
+	LRVC	R3,	SPI_SR
+	TST		R3,	#(1 << 7)
+	BNE		rSPI_RDY
+	NOP
+
+	BX	LR
+.ENDM
+
+.MACRO	SPI_W_CMD	
+SPI_W_CMD:
+
+wT_DATA:
+	OSR		R2,	APB2,	SPI1,	SPI_DR
+
+wTX_RDY:
+	LRVC	R2,	SPI_SR
+	TST		R2,	#(1 << 1)
+	BNE		wTX_RDY
+
+wSPI_RDY:
+	LRVC	R3,	SPI_SR
+	TST		R3,	#(1 << 7)
+	BNE		wSPI_RDY
+	NOP
+
+	BX	LR
+.ENDM
+
+.MACRO	CS_LOW
+	MOV		R3,	#(1 << 2)
+	OSR		R3,	AHB1,	GPIOA,	BSRRH,	H
+.ENDM
+
+.MACRO	CS_HIGH
+	MOV		R3,	#(1	<< 2)
+	OSR		R3,	AHB1,	GPIOA,	BSRRL
+.ENDM
+
+.MACRO	DRDY_ONLINE
+DRDY_ONLINE:
+TEST_H:
+	LRV		R2,	AHB1,	GPIOA,	IDR
+	TST		R2,	#(1 << 3)
+	BEQ		TEST_H
+	
+TEST_L:
+	LRVC	R2,	IDR
+	TST		R2,	#(1 << 3)
+	BNE		TEST_L
+
+	BX	LR
+.ENDM
+

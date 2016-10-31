@@ -1,5 +1,104 @@
-XSym
-0014
-50d1e8f8f0c048c1bfdd67f6bb27c898
-../LBR/ADC.inc
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+@ MACRO file dedicated to ADC "ADS1299"
+@ Started in 5/11/2014
+
+@ TODO: I probably should make a timer that has a parameter input of uSeconds and not clock cycles
+
+.MACRO	RDSPI
+RSPI_RD:
+	CS_LOW
+	MOV		R2,	#0x1
+	BL		SPI_W_CMD	
+
+	LDR		R4,	=700
+rWAIT_INT_RD:
+	SUBS	R4,	R4,	#1
+	BNE		rWAIT_INT_RD
+
+	MOV		R2,	#0x0
+	BL		SPI_R_CMD
+
+	MOV		R4,	#200
+rWAIT_CS_RD:
+	SUBS	R4,	R4,	#1
+	BNE		rWAIT_CS_RD
+
+	CS_HIGH
+.ENDM
+
+.MACRO	ADC_RESET
+ADC_RESET:
+	DELAY	710
+	CS_LOW
+
+	MOV		R2,	#0xFE
+	BL		SPI_W_CMD
+
+	MOV		R4,	#200
+rWAIT_CS_RS:
+	SUBS	R4,	R4,	#1
+	BNE		rWAIT_CS_RS
+
+	CS_HIGH
+
+	BL		DRDY_ONLINE
+	MOV		R2,	#(1 << 12)
+	OSR		R2,	AHB1,	GPIOD,	ODR
+.ENDM
+
+
+.MACRO	ADC_SELF_CALIB
+ADC_SELF_CALIB:
+	PUSH	{LR}
+
+	DELAY	700
+	ADC_CMD	0xF0
+	BL		DRDY_ONLINE
+
+	DELAY	705
+	ADC_CMD	0xF1
+	BL		DRDY_ONLINE
+
+	DELAY	706
+	ADC_CMD	0xF2
+	BL		DRDY_ONLINE
+
+	MOV		R2,	#(3	<< 12)
+	LMS		R2,	AHB1,	GPIOD,	ODR
+	BL		DRDY_ONLINE
+	DELAY	709
+
+	POP		{PC}
+.ENDM
+
+
+.MACRO	ADC_SYS_OFFSET_CALIB
+ADC_SYS_OFFSET_CALIB:
+	PUSH	{LR}
+
+	DELAY	70000000
+	ADC_CMD	0xF3
+	BL		DRDY_ONLINE
+	DELAY	712
+
+	MOV		R2,	#(7 << 12)
+	OSR		R2,	AHB1,	GPIOD,	ODR
+	DELAY	70000002
+
+	POP		{PC}
+.ENDM
+
+
+.MACRO	ADC_SYS_GAIN_CALIB
+ADC_SYS_GAIN_CALIB:
+	PUSH	{LR}
+
+	DELAY	70000001
+	ADC_CMD	0xF4
+	BL		DRDY_ONLINE
+	DELAY	711
+
+	MOV		R2,	#(3 << 12)
+	OSR		R2,	AHB1,	GPIOD,	ODR
+
+	POP		{PC}
+.ENDM
